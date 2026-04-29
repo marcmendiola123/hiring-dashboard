@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hiring Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F8F7F4; --surface: #FFFFFF; --border: #E5E3DC; --border-strong: #C8C5BC;
+  --text: #1C1B18; --text-muted: #6B6860; --text-hint: #A8A59E;
+  --header-bg: #1C1B18; --header-text: #FFFFFF;
+  --row-hover: #F3F1EC; --group-bg: #F8F7F4;
+  --status-finding: #1B4FA8; --status-finding-bg: #E8EFFC;
+  --status-intro: #6B3FA0; --status-intro-bg: #F0EAFA;
+  --status-pending: #8B5E00; --status-pending-bg: #FEF3DA;
+  --status-interview: #0F6E56; --status-interview-bg: #E1F5EE;
+  --status-offer: #C05C00; --status-offer-bg: #FEF0E6;
+  --status-declined: #A32D2D; --status-declined-bg: #FCEBEB;
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.top-bar { background: var(--header-bg); color: var(--header-text); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.top-bar-left { display: flex; align-items: center; gap: 12px; }
+.logo { width: 28px; height: 28px; background: rgba(255,255,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.top-bar h1 { font-size: 14px; font-weight: 600; }
+.top-bar-right { display: flex; align-items: center; gap: 12px; }
+.last-updated { font-size: 11px; color: rgba(255,255,255,0.4); font-family: 'JetBrains Mono', monospace; }
+.refresh-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: rgba(255,255,255,0.8); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.refresh-btn:hover { background: rgba(255,255,255,0.18); }
+.stats-row { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+.stat-item { flex: 1; padding: 14px 24px; border-right: 1px solid var(--border); }
+.stat-item:last-child { border-right: none; }
+.stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-hint); margin-bottom: 4px; }
+.stat-val { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+.controls { display: flex; align-items: center; gap: 10px; padding: 12px 28px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.controls label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+select, input[type="text"] { font-family: 'Inter', sans-serif; font-size: 12px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg); color: var(--text); outline: none; min-width: 160px; }
+select:focus, input[type="text"]:focus { border-color: var(--text); }
+.search-input { min-width: 200px; }
+.toggle-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.toggle-btn.on { background: var(--text); color: #fff; border-color: var(--text); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+.table-wrap { padding: 20px 28px 40px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; table-layout: fixed; }
+col.c-pr { width: 32px; } col.c-stk { width: 110px; } col.c-proj { width: 90px; } col.c-role { width: 220px; }
+col.c-jobid { width: 70px; } col.c-owner { width: 100px; } col.c-pri { width: 72px; }
+col.c-status { width: 150px; } col.c-talent { width: 160px; } col.c-notes { width: 240px; }
+col.c-rtt { width: 60px; } col.c-rtc { width: 60px; } col.c-loc { width: 90px; }
+thead tr th { background: var(--header-bg); color: rgba(255,255,255,0.65); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px; text-align: left; border-right: 1px solid rgba(255,255,255,0.08); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+thead tr th:last-child { border-right: none; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover td { background: var(--row-hover); }
+td { padding: 9px 12px; vertical-align: middle; border-right: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td:last-child { border-right: none; }
+tr.group-start td { border-top: 2px solid var(--border-strong); }
+tr.group-start:first-child td { border-top: none; }
+td.merged { background: var(--group-bg); vertical-align: top; padding-top: 11px; font-weight: 500; }
+td.role-cell { font-weight: 500; white-space: normal; line-height: 1.4; }
+td.role-cell a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border-strong); }
+td.role-cell a:hover { color: #185FA5; border-color: #185FA5; }
+td.talent-cell a { color: #185FA5; text-decoration: none; font-weight: 500; }
+td.talent-cell a:hover { text-decoration: underline; }
+.status-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.s-finding { background: var(--status-finding-bg); color: var(--status-finding); }
+.s-intro { background: var(--status-intro-bg); color: var(--status-intro); }
+.s-pending { background: var(--status-pending-bg); color: var(--status-pending); }
+.s-interview { background: var(--status-interview-bg); color: var(--status-interview); }
+.s-offer { background: var(--status-offer-bg); color: var(--status-offer); }
+.s-declined { background: var(--status-declined-bg); color: var(--status-declined); }
+.s-default { background: #F1EFE8; color: #5F5E5A; }
+.pri-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.pri-critical { background: #FCEBEB; color: #A32D2D; }
+.pri-high { background: #FEF3DA; color: #8B5E00; }
+.pri-medium { background: #E8EFFC; color: #1B4FA8; }
+.pri-low { background: #F1EFE8; color: #5F5E5A; }
+td.rate-cell { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted); text-align: right; }
+td.notes-cell { color: var(--text-muted); font-size: 11.5px; }
+.state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 14px; color: var(--text-hint); }
+.spinner { width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--text-muted); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.state-msg { font-size: 13px; }
+.error-box { background: #FCEBEB; border: 1px solid #F09595; border-radius: 8px; padding: 18px 22px; color: #A32D2D; font-size: 13px; line-height: 1.6; margin: 20px 28px; }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="logo">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="5" r="3" fill="white"/>
+        <path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>Hiring Pipeline</h1>
+  </div>
+  <div class="top-bar-right">
+    <span class="last-updated" id="lastUpdated">—</span>
+    <button class="refresh-btn" onclick="loadData()">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8a7 7 0 1 0 .8-3.2M1 2v3h3"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+<div class="stats-row">
+  <div class="stat-item"><div class="stat-label">Active Candidates</div><div class="stat-val" id="sActive">—</div></div>
+  <div class="stat-item"><div class="stat-label">Open Roles</div><div class="stat-val" id="sRoles">—</div></div>
+  <div class="stat-item"><div class="stat-label">In Interview</div><div class="stat-val" id="sInterview">—</div></div>
+  <div class="stat-item"><div class="stat-label">Offers Out</div><div class="stat-val" id="sOffers">—</div></div>
+</div>
+<div class="controls">
+  <label>Role</label>
+  <select id="roleFilter" onchange="render()"><option value="">All roles</option></select>
+  <label>Owner</label>
+  <select id="ownerFilter" onchange="render()"><option value="">All owners</option></select>
+  <input type="text" class="search-input" id="searchBox" placeholder="Search anything…" oninput="render()">
+  <button class="toggle-btn on" id="activeToggle" onclick="toggleActive()"><span class="dot"></span> Active only</button>
+</div>
+<div id="mainContent">
+  <div class="state-box"><div class="spinner"></div><div class="state-msg">Loading from Google Sheets…</div></div>
+</div>
+<script>
+const SHEET_ID = '1AeN_21v9obkt3gowk9q_DJs2QmRGkYevkH6p2ZirH7c';
+const URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&gid=0';
+const COL = { pr:0, stakeholder:1, project:2, role:3, jobId:4, owner:5, priority:6, status:7, talent:8, notes:9, rtt:10, rtc:11, location:12 };
+const INACTIVE = ['rejected','declined','withdrawn','hired','closed','archived','passed','no hire'];
+let rawRows = [], richRows = [], showActive = true;
+
+function norm(s){ return (s||'').toLowerCase().trim(); }
+function isActive(row){ const s=norm(row[COL.status]); if(!s) return true; return !INACTIVE.some(k=>s.includes(k)); }
+
+async function loadData(){
+  document.getElementById('mainContent').innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-msg">Fetching live data…</div></div>';
+  try {
+    const res = await fetch(URL);
+    const text = await res.text();
+    const json = JSON.parse(text.replace(/^[^\(]*\(/,'').replace(/\);?\s*$/,''));
+    const cols = json.table.cols;
+    const rows = json.table.rows;
+    rawRows = rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return ''; if(c.f!=null) return String(c.f); if(c.v!=null) return String(c.v); return ''; })).filter(r=>r.some(c=>c));
+    richRows = rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return {text:'',url:''}; const text=c.f!=null?String(c.f):(c.v!=null?String(c.v):''); const url=(c.v&&String(c.v).startsWith('http'))?String(c.v):''; return {text,url}; }));
+    if(!rawRows.length) throw new Error('No data found.');
+    populateFilters(); updateStats(); render();
+    document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML = '<div class="error-box"><strong>Couldn\'t load data.</strong><br>Make sure the sheet is "Anyone with the link can view".<br><small style="opacity:0.7">'+e.message+'</small></div>';
+  }
+}
+
+function populateFilters(){
+  const roles=[...new Set(rawRows.map(r=>r[COL.role]).filter(Boolean))].sort();
+  const owners=[...new Set(rawRows.map(r=>r[COL.owner]).filter(Boolean))].sort();
+  document.getElementById('roleFilter').innerHTML='<option value="">All roles</option>'+roles.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('');
+  document.getElementById('ownerFilter').innerHTML='<option value="">All owners</option>'+owners.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('');
+}
+
+function updateStats(){
+  const active=rawRows.filter(r=>isActive(r));
+  const roles=new Set(active.map(r=>r[COL.role]).filter(Boolean));
+  const interviews=active.filter(r=>{ const s=norm(r[COL.status]); return s.includes('interview')||s.includes('screen')||s.includes('onsite'); });
+  const offers=active.filter(r=>norm(r[COL.status]).includes('offer'));
+  document.getElementById('sActive').textContent=active.length;
+  document.getElementById('sRoles').textContent=roles.size;
+  document.getElementById('sInterview').textContent=interviews.length;
+  document.getElementById('sOffers').textContent=offers.length;
+}
+
+function statusClass(s){ const n=norm(s); if(n.includes('finding')) return 's-finding'; if(n.includes('introduc')) return 's-intro'; if(n.includes('pending')) return 's-pending'; if(n.includes('interview')||n.includes('screen')||n.includes('onsite')) return 's-interview'; if(n.includes('offer')) return 's-offer'; if(n.includes('reject')||n.includes('declin')||n.includes('withdraw')) return 's-declined'; return 's-default'; }
+function priorityClass(p){ const n=norm(p); if(n.includes('critical')) return 'pri-critical'; if(n.includes('high')) return 'pri-high'; if(n.includes('med')) return 'pri-medium'; if(n.includes('low')) return 'pri-low'; return ''; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function render(){
+  const roleF=document.getElementById('roleFilter').value;
+  const ownerF=document.getElementById('ownerFilter').value;
+  const search=norm(document.getElementById('searchBox').value);
+  let filtered=rawRows.filter(r=>{ if(showActive&&!isActive(r)) return false; if(roleF&&r[COL.role]!==roleF) return false; if(ownerF&&r[COL.owner]!==ownerF) return false; if(search&&!r.join(' ').toLowerCase().includes(search)) return false; return true; });
+  if(!filtered.length){ document.getElementById('mainContent').innerHTML='<div class="state-box"><div class="state-msg">No results match.</div></div>'; return; }
+
+  const groups=[];
+  let currentKey=null, currentGroup=null;
+  filtered.forEach(r=>{ const key=(r[COL.role]||'')+'||'+(r[COL.jobId]||'')+'||'+(r[COL.stakeholder]||''); if(key!==currentKey){ currentGroup={key,leftRow:r,leftRich:richRows[rawRows.indexOf(r)],candidates:[]}; groups.push(currentGroup); currentKey=key; } currentGroup.candidates.push({row:r,rich:richRows[rawRows.indexOf(r)]}); });
+
+  let html='<div class="table-wrap"><table><colgroup><col class="c-pr"><col class="c-stk"><col class="c-proj"><col class="c-role"><col class="c-jobid"><col class="c-owner"><col class="c-pri"><col class="c-status"><col class="c-talent"><col class="c-notes"><col class="c-rtt"><col class="c-rtc"><col class="c-loc"></colgroup>';
+  html+='<thead><tr><th>PR</th><th>Requestor/POC</th><th>Project</th><th>Role / Job</th><th>Job ID</th><th>Owner</th><th>Priority</th><th>Status</th><th>Talent</th><th>Comments</th><th>RTT</th><th>RTC</th><th>Location</th></tr></thead><tbody>';
+
+  groups.forEach(g=>{
+    const span=g.candidates.length;
+    const lr=g.leftRow; const lrich=g.leftRich;
+    g.candidates.forEach((c,ci)=>{
+      const r=c.row; const rich=c.rich; const isFirst=ci===0;
+      const talentRich=rich?rich[COL.talent]:null;
+      const talentName=(talentRich&&talentRich.text)?talentRich.text:(r[COL.talent]||'—');
+      const talentUrl=(talentRich&&talentRich.url)?talentRich.url:'';
+      const roleRich=lrich?lrich[COL.role]:null;
+      const roleText=(roleRich&&roleRich.text)?roleRich.text:(lr[COL.role]||'');
+      const roleUrl=(roleRich&&roleRich.url)?roleRich.url:'';
+      const status=r[COL.status]||''; const priority=lr[COL.priority]||'';
+      const pClass=priorityClass(priority);
+      html+='<tr'+(isFirst?' class="group-start"':'')+'>';
+      if(isFirst){
+        const rs=span>1?' rowspan="'+span+'"':'';
+        html+='<td'+rs+' class="merged" style="font-size:11px;color:var(--text-hint);">'+esc(lr[COL.pr]||'')+'</td>';
+        html+='<td'+rs+' class="merged" style="font-size:12px;">'+esc(lr[COL.stakeholder]||'')+'</td>';
+        html+='<td'+rs+' class="merged" style="font-size:12px;color:var(--text-muted);">'+esc(lr[COL.project]||'')+'</td>';
+        html+='<td'+rs+' class="merged role-cell">'+(roleUrl?'<a href="'+esc(roleUrl)+'" target="_blank">'+esc(roleText)+'</a>':esc(roleText))+'</td>';
+        html+='<td'+rs+' class="merged" style="font-size:11px;font-family:\'JetBrains Mono\',monospace;color:var(--text-muted);">'+esc(lr[COL.jobId]||'')+'</td>';
+        html+='<td'+rs+' class="merged" style="font-size:12px;">'+esc(lr[COL.owner]||'')+'</td>';
+        html+='<td'+rs+' class="merged">'+(pClass?'<span class="pri-badge '+pClass+'">'+esc(priority)+'</span>':esc(priority))+'</td>';
+      }
+      html+='<td><span class="status-badge '+statusClass(status)+'">'+esc(status)+'</span></td>';
+      html+='<td class="talent-cell">'+(talentUrl?'<a href="'+esc(talentUrl)+'" target="_blank">'+esc(talentName)+'</a>':esc(talentName))+'</td>';
+      html+='<td class="notes-cell" title="'+esc(r[COL.notes]||'')+'">'+esc(r[COL.notes]||'')+'</td>';
+      html+='<td class="rate-cell">'+esc(r[COL.rtt]||'')+'</td>';
+      html+='<td class="rate-cell">'+esc(r[COL.rtc]||'')+'</td>';
+      html+='<td style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.location]||'')+'</td>';
+      html+='</tr>';
+    });
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('mainContent').innerHTML=html;
+}
+
+function toggleActive(){ showActive=!showActive; const btn=document.getElementById('activeToggle'); btn.classList.toggle('on',showActive); btn.innerHTML='<span class="dot"></span> '+(showActive?'Active only':'All candidates'); render(); }
+loadData();
+</script>
+</body>
+</html>
