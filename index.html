@@ -45,8 +45,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .controls label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 select, input[type="text"] { font-family: 'Inter', sans-serif; font-size: 12px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg); color: var(--text); outline: none; min-width: 160px; }
 .search-input { min-width: 200px; }
-.export-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--border-strong); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; margin-left: auto; }
-.export-btn:hover { background: var(--border); color: var(--text); }
+.export-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--border-strong); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; margin-left: auto; transition: all 0.15s; }
+.export-btn:hover { background: var(--text); color: #fff; border-color: var(--text); }
 .table-wrap { padding: 20px 28px 60px; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; table-layout: fixed; }
 col.c-pr{width:30px}col.c-stk{width:105px}col.c-proj{width:75px}col.c-role{width:205px}
@@ -68,18 +68,15 @@ td.merged { vertical-align: top; padding-top: 11px; font-weight: 500; }
 td.merged.placed-merged { background: var(--active-row); }
 td.role-cell { font-weight: 500; white-space: normal; line-height: 1.4; }
 td.expand-cell { cursor: pointer; position: relative; overflow: hidden; }
-td.expand-cell span.econtent { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
-td.expand-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
-td.expand-cell:hover .xhint { visibility: visible; }
+td.expand-cell span.econtent { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.expand-cell:hover::after { content: 'expand'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
 td.talent-cell { cursor: pointer; position: relative; overflow: hidden; }
-td.talent-cell span.tname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #185FA5; font-weight: 500; max-width: calc(100% - 20px); }
-td.talent-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
-td.talent-cell:hover .xhint { visibility: visible; }
+td.talent-cell span.tname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #185FA5; font-weight: 500; }
+td.talent-cell:hover::after { content: 'expand'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
 td.notes-cell { color: var(--text-muted); font-size: 11.5px; cursor: pointer; position: relative; overflow: hidden; }
 td.notes-cell:hover { color: var(--text); }
-td.notes-cell span.nprev { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
-td.notes-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
-td.notes-cell:hover .xhint { visibility: visible; }
+td.notes-cell span.nprev { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.notes-cell:hover::after { content: 'expand'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
 .status-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .s-finding{background:var(--sfb);color:var(--sf)}.s-intro{background:var(--sib);color:var(--si)}
 .s-pending{background:var(--spb);color:var(--sp)}.s-interv{background:var(--svb);color:var(--sv)}
@@ -169,57 +166,27 @@ async function loadData(){
     const res=await fetch(API_URL);
     const text=await res.text();
     const json=JSON.parse(text.replace(/^[^\(]*\(/,'').replace(/\);?\s*$/,''));
-    const cols=json.table.cols;
-    const rows=json.table.rows;
+    const cols=json.table.cols; const rows=json.table.rows;
     rawRows=rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return ''; if(c.f!=null) return String(c.f); if(c.v!=null) return String(c.v); return ''; })).filter(r=>r.some(c=>c));
     richRows=rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return {text:'',url:''}; const text=c.f!=null?String(c.f):(c.v!=null?String(c.v):''); let url=''; if(c.v&&typeof c.v==='string'&&c.v.startsWith('http')) url=c.v; if(!url&&c.p){const ps=JSON.stringify(c.p);const m=ps.match(/https?:\/\/[^"\\]+/);if(m) url=m[0];} return {text,url}; }));
     if(!rawRows.length) throw new Error('No data found.');
-    populateRoleFilter();
-    buildBubbles();
-    render();
+    populateRoleFilter(); buildBubbles(); render();
     document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  } catch(e){
-    document.getElementById('mainContent').innerHTML='<div class="error-box"><strong>Could not load data.</strong><br>'+e.message+'</div>';
-  }
+  } catch(e){ document.getElementById('mainContent').innerHTML='<div class="error-box"><strong>Could not load data.</strong><br>'+e.message+'</div>'; }
 }
 
-function setView(v){
-  currentView=v;
-  ['all','pipeline','placed'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===v));
-  statusFilter=''; priorityFilter=''; ownerFilter='';
-  buildBubbles();
-  render();
-}
-
-function getViewRows(){
-  if(currentView==='placed') return rawRows.filter(r=>isPlaced(r));
-  if(currentView==='pipeline') return rawRows.filter(r=>!isPlaced(r));
-  return rawRows;
-}
+function setView(v){ currentView=v; ['all','pipeline','placed'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===v)); statusFilter=''; priorityFilter=''; ownerFilter=''; buildBubbles(); render(); }
+function getViewRows(){ if(currentView==='placed') return rawRows.filter(r=>isPlaced(r)); if(currentView==='pipeline') return rawRows.filter(r=>!isPlaced(r)); return rawRows; }
 
 function buildBubbles(){
   const base=getViewRows();
-  const sB=[
-    {key:'',label:'All',cls:'b-all',match:()=>true},
-    {key:'active',label:'Active',cls:'b-active',match:s=>norm(s)==='active'},
-    {key:'finding',label:'Finding Talent',cls:'b-finding',match:s=>norm(s).includes('finding')},
-    {key:'intro',label:'Introduced',cls:'b-intro',match:s=>norm(s).includes('introduc')},
-    {key:'pending',label:'Pending',cls:'b-pending',match:s=>norm(s).includes('pending')},
-    {key:'interview',label:'Interviewing',cls:'b-interv',match:s=>norm(s).includes('interview')||norm(s).includes('screen')||norm(s).includes('onsite')},
-    {key:'offer',label:'Offer',cls:'b-offer',match:s=>norm(s).includes('offer')}
-  ];
+  const sB=[{key:'',label:'All',cls:'b-all',match:()=>true},{key:'active',label:'Active',cls:'b-active',match:s=>norm(s)==='active'},{key:'finding',label:'Finding Talent',cls:'b-finding',match:s=>norm(s).includes('finding')},{key:'intro',label:'Introduced',cls:'b-intro',match:s=>norm(s).includes('introduc')},{key:'pending',label:'Pending',cls:'b-pending',match:s=>norm(s).includes('pending')},{key:'interview',label:'Interviewing',cls:'b-interv',match:s=>norm(s).includes('interview')||norm(s).includes('screen')||norm(s).includes('onsite')},{key:'offer',label:'Offer',cls:'b-offer',match:s=>norm(s).includes('offer')}];
   sB.forEach(b=>b.count=base.filter(r=>b.match(r[COL.status]||'')).length);
   let sh='<span class="bubble-section-label">Status</span>';
   sB.forEach(b=>{ if(b.count===0&&b.key!=='') return; sh+='<div class="bubble '+b.cls+(statusFilter===b.key&&b.key!==''?' on':'')+'" onclick="toggleStatus(\''+b.key+'\')"><span class="bcount">'+b.count+'</span><span class="blabel">'+b.label+'</span></div>'; });
   document.getElementById('statusBubbles').innerHTML=sh;
 
-  const pB=[
-    {key:'',label:'All',cls:'b-all',match:()=>true},
-    {key:'critical',label:'Critical',cls:'b-pcritical',match:p=>norm(p).includes('critical')},
-    {key:'high',label:'High',cls:'b-phigh',match:p=>norm(p).includes('high')},
-    {key:'medium',label:'Medium',cls:'b-pmedium',match:p=>norm(p).includes('med')},
-    {key:'low',label:'Low',cls:'b-plow',match:p=>norm(p).includes('low')}
-  ];
+  const pB=[{key:'',label:'All',cls:'b-all',match:()=>true},{key:'critical',label:'Critical',cls:'b-pcritical',match:p=>norm(p).includes('critical')},{key:'high',label:'High',cls:'b-phigh',match:p=>norm(p).includes('high')},{key:'medium',label:'Medium',cls:'b-pmedium',match:p=>norm(p).includes('med')},{key:'low',label:'Low',cls:'b-plow',match:p=>norm(p).includes('low')}];
   pB.forEach(b=>b.count=base.filter(r=>b.match(r[COL.priority]||'')).length);
   let ph='<span class="bubble-section-label">Priority</span>';
   pB.forEach(b=>{ if(b.count===0&&b.key!=='') return; ph+='<div class="bubble '+b.cls+(priorityFilter===b.key&&b.key!==''?' on':'')+'" onclick="togglePriority(\''+b.key+'\')"><span class="bcount">'+b.count+'</span><span class="blabel">'+b.label+'</span></div>'; });
@@ -235,26 +202,14 @@ function buildBubbles(){
 function toggleStatus(k){ statusFilter=(statusFilter===k&&k!=='')?'':k; buildBubbles(); render(); }
 function togglePriority(k){ priorityFilter=(priorityFilter===k&&k!=='')?'':k; buildBubbles(); render(); }
 function toggleOwner(k){ ownerFilter=(ownerFilter===k&&k!=='')?'':k; buildBubbles(); render(); }
-
-function populateRoleFilter(){
-  const roles=[...new Set(rawRows.map(r=>r[COL.role]).filter(Boolean))].sort();
-  document.getElementById('roleFilter').innerHTML='<option value="">All roles</option>'+roles.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('');
-}
-
+function populateRoleFilter(){ const roles=[...new Set(rawRows.map(r=>r[COL.role]).filter(Boolean))].sort(); document.getElementById('roleFilter').innerHTML='<option value="">All roles</option>'+roles.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join(''); }
 function matchStatus(r){ if(!statusFilter) return true; const s=r[COL.status]||''; const m={active:s=>norm(s)==='active',finding:s=>norm(s).includes('finding'),intro:s=>norm(s).includes('introduc'),pending:s=>norm(s).includes('pending'),interview:s=>norm(s).includes('interview')||norm(s).includes('screen')||norm(s).includes('onsite'),offer:s=>norm(s).includes('offer')}; return m[statusFilter]?m[statusFilter](s):true; }
 function matchPriority(r){ if(!priorityFilter) return true; const p=norm(r[COL.priority]||''); if(priorityFilter==='critical') return p.includes('critical'); if(priorityFilter==='high') return p.includes('high'); if(priorityFilter==='medium') return p.includes('med'); if(priorityFilter==='low') return p.includes('low'); return true; }
 
 function render(){
   const roleF=document.getElementById('roleFilter').value;
   const search=norm(document.getElementById('searchBox').value);
-  let filtered=getViewRows().filter(r=>{
-    if(!matchStatus(r)) return false;
-    if(!matchPriority(r)) return false;
-    if(ownerFilter&&r[COL.owner]!==ownerFilter) return false;
-    if(roleF&&r[COL.role]!==roleF) return false;
-    if(search&&!r.join(' ').toLowerCase().includes(search)) return false;
-    return true;
-  });
+  let filtered=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; if(search&&!r.join(' ').toLowerCase().includes(search)) return false; return true; });
   if(!filtered.length){ document.getElementById('mainContent').innerHTML='<div class="state-box"><div class="state-msg">No results match.</div></div>'; return; }
   const groups=[]; let curKey=null,curGroup=null;
   filtered.forEach(r=>{ const key=(r[COL.role]||'')+'||'+(r[COL.jobId]||'')+'||'+(r[COL.stakeholder]||''); if(key!==curKey){ curGroup={key,lr:r,lrich:richRows[rawRows.indexOf(r)],cands:[]}; groups.push(curGroup); curKey=key; } curGroup.cands.push({r,rich:richRows[rawRows.indexOf(r)]}); });
@@ -272,16 +227,16 @@ function render(){
       if(isFirst){
         const rs=span>1?' rowspan="'+span+'"':''; const mc='class="merged'+(gp?' placed-merged':'')+'"';
         html+='<td '+rs+' '+mc+' style="font-size:11px;color:var(--text-hint);">'+esc(lr[COL.pr]||'')+'</td>';
-        html+='<td '+rs+' '+mc+' class="merged expand-cell" data-idx="'+lidx+'" data-field="stakeholder" onclick="openFieldModal(this)" style="font-size:12px;"><span class="econtent">'+esc(lr[COL.stakeholder]||'')+'</span><span class="xhint">expand</span></td>';
+        html+='<td '+rs+' '+mc+' class="merged expand-cell" data-idx="'+lidx+'" data-field="stakeholder" onclick="openFieldModal(this)" style="font-size:12px;"><span class="econtent">'+esc(lr[COL.stakeholder]||'')+'</span></td>';
         html+='<td '+rs+' '+mc+' style="font-size:12px;color:var(--text-muted);">'+esc(lr[COL.project]||'')+'</td>';
-        html+='<td '+rs+' '+mc+' class="merged role-cell expand-cell" data-idx="'+lidx+'" data-field="role" onclick="openFieldModal(this)"><span class="econtent">'+(roleUrl?'<a href="'+esc(roleUrl)+'" target="_blank" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border-strong)">'+esc(roleText)+'</a>':esc(roleText))+'</span><span class="xhint">expand</span></td>';
+        html+='<td '+rs+' '+mc+' class="merged role-cell expand-cell" data-idx="'+lidx+'" data-field="role" onclick="openFieldModal(this)"><span class="econtent">'+(roleUrl?'<a href="'+esc(roleUrl)+'" target="_blank" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border-strong)">'+esc(roleText)+'</a>':esc(roleText))+'</span></td>';
         html+='<td '+rs+' '+mc+' style="font-size:11px;font-family:\'JetBrains Mono\',monospace;color:var(--text-muted);">'+esc(lr[COL.jobId]||'')+'</td>';
         html+='<td '+rs+' '+mc+' style="font-size:12px;">'+esc(lr[COL.owner]||'')+'</td>';
         html+='<td '+rs+' '+mc+'>'+(pClass?'<span class="pri-badge '+pClass+'">'+esc(priority)+'</span>':esc(priority))+'</td>';
       }
       html+='<td><span class="status-badge '+statusClass(status)+'">'+esc(status)+'</span></td>';
-      html+='<td class="talent-cell" data-idx="'+idx+'" onclick="openTalentModal(this)"><span class="tname">'+esc(tn)+'</span><span class="xhint">expand</span></td>';
-      if(notes){ html+='<td class="notes-cell" data-idx="'+idx+'" onclick="openNotesModal(this)"><span class="nprev">'+esc(notes)+'</span><span class="xhint">expand</span></td>'; }
+      html+='<td class="talent-cell" data-idx="'+idx+'" onclick="openTalentModal(this)"><span class="tname">'+esc(tn)+'</span></td>';
+      if(notes){ html+='<td class="notes-cell" data-idx="'+idx+'" onclick="openNotesModal(this)"><span class="nprev">'+esc(notes)+'</span></td>'; }
       else { html+='<td class="notes-cell"><span class="nprev" style="color:var(--text-hint)">—</span></td>'; }
       html+='<td class="rate-cell">'+esc(r[COL.rtt]||'')+'</td>';
       html+='<td class="rate-cell">'+esc(r[COL.rtc]||'')+'</td>';
@@ -294,17 +249,14 @@ function render(){
 }
 
 function openFieldModal(td){
-  const idx=parseInt(td.getAttribute('data-idx'));
-  const field=td.getAttribute('data-field');
+  const idx=parseInt(td.getAttribute('data-idx')); const field=td.getAttribute('data-field');
   const r=rawRows[idx]; const rich=richRows[idx];
   if(field==='stakeholder'){
     document.getElementById('modalTitle').textContent='Requestor / POC';
     document.getElementById('modalBody').textContent=r[COL.stakeholder]||'—';
     document.getElementById('modalMeta').innerHTML=r[COL.role]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.role])+'</span>':'';
   } else if(field==='role'){
-    const rr=rich?rich[COL.role]:null;
-    const roleText=(rr&&rr.text)?rr.text:(r[COL.role]||'—');
-    const roleUrl=(rr&&rr.url)?rr.url:'';
+    const rr=rich?rich[COL.role]:null; const roleText=(rr&&rr.text)?rr.text:(r[COL.role]||'—'); const roleUrl=(rr&&rr.url)?rr.url:'';
     document.getElementById('modalTitle').textContent='Role / Job';
     document.getElementById('modalBody').innerHTML='<strong style="font-size:14px;color:var(--text);">'+esc(roleText)+'</strong>'+(roleUrl?'<br><br><a href="'+esc(roleUrl)+'" target="_blank" style="color:#1B4FA8;font-weight:500;">View job description ↗</a>':'');
     document.getElementById('modalMeta').innerHTML=(r[COL.jobId]?'<span style="font-size:12px;font-family:monospace;color:var(--text-muted);">'+esc(r[COL.jobId])+'</span>':'')+(r[COL.owner]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.owner])+'</span>':'')+(r[COL.priority]?'<span class="pri-badge '+priorityClass(r[COL.priority])+'">'+esc(r[COL.priority])+'</span>':'');
@@ -316,7 +268,7 @@ function openTalentModal(td){
   const idx=parseInt(td.getAttribute('data-idx')); const r=rawRows[idx]; const rich=richRows[idx];
   const tr2=rich?rich[COL.talent]:null; const name=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—'); const url=(tr2&&tr2.url)?tr2.url:'';
   document.getElementById('modalTitle').textContent=name;
-  document.getElementById('modalBody').innerHTML=url?'<a href="'+esc(url)+'" target="_blank" style="color:#1B4FA8;font-weight:500;">View talent profile ↗</a>':'<span style="color:var(--text-hint)">No profile link yet — coming via Apps Script soon.</span>';
+  document.getElementById('modalBody').innerHTML=url?'<a href="'+esc(url)+'" target="_blank" style="color:#1B4FA8;font-weight:500;">View talent profile ↗</a>':'<span style="color:var(--text-hint)">No profile link yet.</span>';
   const sc=statusClass(r[COL.status]||'');
   document.getElementById('modalMeta').innerHTML=(r[COL.status]?'<span class="status-badge '+sc+'">'+esc(r[COL.status])+'</span>':'')+(r[COL.role]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.role])+'</span>':'')+(r[COL.owner]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.owner])+'</span>':'');
   document.getElementById('modalOverlay').classList.add('open');
@@ -333,9 +285,10 @@ function openNotesModal(td){
 }
 
 function exportCSV(){
-  const headers=['PR','Requestor/POC','Project','Role/Job','Job ID','Owner','Priority','Status','Talent','Comments','RTT','RTC','Location'];
   const roleF=document.getElementById('roleFilter').value;
-  const rows=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; return true; });
+  const search=norm(document.getElementById('searchBox').value);
+  const rows=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; if(search&&!r.join(' ').toLowerCase().includes(search)) return false; return true; });
+  const headers=['PR','Requestor/POC','Project','Role/Job','Job ID','Owner','Priority','Status','Talent','Comments','RTT','RTC','Location'];
   const csv=[headers.join(','),...rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n');
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='hiring-pipeline.csv'; a.click();
 }
@@ -343,7 +296,6 @@ function exportCSV(){
 function closeModal(e){ if(e.target===document.getElementById('modalOverlay')) closeModalDirect(); }
 function closeModalDirect(){ document.getElementById('modalOverlay').classList.remove('open'); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModalDirect(); });
-
 loadData();
 </script>
 </body>
