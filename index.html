@@ -67,17 +67,19 @@ tr.group-start:first-child td { border-top: none; }
 td.merged { vertical-align: top; padding-top: 11px; font-weight: 500; }
 td.merged.placed-merged { background: var(--active-row); }
 td.role-cell { font-weight: 500; white-space: normal; line-height: 1.4; }
-td.expand-cell { cursor: pointer; position: relative; }
-td.expand-cell span.econtent { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-td.expand-cell .xhint { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; }
-td.expand-cell:hover .xhint { display: block; }
-td.talent-cell { cursor: pointer; position: relative; }
-td.talent-cell span.tname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #185FA5; font-weight: 500; }
-td.talent-cell .xhint, td.notes-cell .xhint { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; }
-td.talent-cell:hover .xhint, td.notes-cell:hover .xhint { display: block; }
-td.notes-cell { color: var(--text-muted); font-size: 11.5px; cursor: pointer; position: relative; }
+td.expand-cell { cursor: pointer; position: relative; overflow: hidden; }
+td.expand-cell span.econtent { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
+td.expand-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
+td.expand-cell:hover .xhint { visibility: visible; }
+td.talent-cell { cursor: pointer; position: relative; overflow: hidden; }
+td.talent-cell span.tname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #185FA5; font-weight: 500; max-width: calc(100% - 20px); }
+td.talent-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
+td.talent-cell:hover .xhint { visibility: visible; }
+td.notes-cell { color: var(--text-muted); font-size: 11.5px; cursor: pointer; position: relative; overflow: hidden; }
 td.notes-cell:hover { color: var(--text); }
-td.notes-cell span.nprev { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.notes-cell span.nprev { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
+td.notes-cell .xhint { visibility: hidden; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 2; pointer-events: none; }
+td.notes-cell:hover .xhint { visibility: visible; }
 .status-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .s-finding{background:var(--sfb);color:var(--sf)}.s-intro{background:var(--sib);color:var(--si)}
 .s-pending{background:var(--spb);color:var(--sp)}.s-interv{background:var(--svb);color:var(--sv)}
@@ -262,7 +264,7 @@ function render(){
     const span=g.cands.length; const lr=g.lr; const lrich=g.lrich; const gp=isPlaced(lr);
     g.cands.forEach((c,ci)=>{
       const r=c.r; const rich=c.rich; const isFirst=ci===0; const rp=isPlaced(r);
-      const tr2=rich?rich[COL.talent]:null; const tn=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—'); const tu=(tr2&&tr2.url)?tr2.url:'';
+      const tr2=rich?rich[COL.talent]:null; const tn=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—');
       const rr=lrich?lrich[COL.role]:null; const roleText=(rr&&rr.text)?rr.text:(lr[COL.role]||''); const roleUrl=(rr&&rr.url)?rr.url:'';
       const status=r[COL.status]||''; const notes=r[COL.notes]||''; const priority=lr[COL.priority]||''; const pClass=priorityClass(priority);
       const idx=rawRows.indexOf(r); const lidx=rawRows.indexOf(lr);
@@ -332,7 +334,8 @@ function openNotesModal(td){
 
 function exportCSV(){
   const headers=['PR','Requestor/POC','Project','Role/Job','Job ID','Owner','Priority','Status','Talent','Comments','RTT','RTC','Location'];
-  const rows=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; const roleF=document.getElementById('roleFilter').value; if(roleF&&r[COL.role]!==roleF) return false; return true; });
+  const roleF=document.getElementById('roleFilter').value;
+  const rows=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; return true; });
   const csv=[headers.join(','),...rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n');
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='hiring-pipeline.csv'; a.click();
 }
