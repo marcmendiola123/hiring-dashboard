@@ -159,7 +159,12 @@ td.rate-cell { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; colo
 <script>
 const SHEET_ID = '1AeN_21v9obkt3gowk9q_DJs2QmRGkYevkH6p2ZirH7c';
 const API_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&gid=0';
-const COL = { pr:0, stakeholder:1, project:2, role:3, jobId:4, owner:5, priority:6, status:7, talent:8, notes:9, rtt:10, rtc:11, location:12 };
+const COL = {
+  pr:0, stakeholder:1, project:2, role:3, jobId:4, owner:5, priority:6,
+  status:7, talent:8, notes:9, rtt:10, rtc:11, location:12,
+  talentUrl:13,  // col N — extracted by Apps Script
+  roleUrl:14     // col O — extracted by Apps Script
+};
 let rawRows=[], richRows=[], currentView='all', statusFilter='', priorityFilter='', ownerFilter='';
 
 function norm(s){ return (s||'').toLowerCase().trim(); }
@@ -176,7 +181,6 @@ async function loadData(){
     const json=JSON.parse(text.replace(/^[^\(]*\(/,'').replace(/\);?\s*$/,''));
     const cols=json.table.cols; const rows=json.table.rows;
     rawRows=rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return ''; if(c.f!=null) return String(c.f); if(c.v!=null) return String(c.v); return ''; })).filter(r=>r.some(c=>c));
-    richRows=rows.filter(r=>r&&r.c).map(r=>cols.map((_,i)=>{ const c=r.c[i]; if(!c) return {text:'',url:''}; const text=c.f!=null?String(c.f):(c.v!=null?String(c.v):''); let url=''; if(c.v&&typeof c.v==='string'&&c.v.startsWith('http')) url=c.v; if(!url&&c.p){const ps=JSON.stringify(c.p);const m=ps.match(/https?:\/\/[^"\\]+/);if(m) url=m[0];} return {text,url}; }));
     if(!rawRows.length) throw new Error('No data found.');
     populateRoleFilter(); buildBubbles(); render();
     document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -220,16 +224,20 @@ function render(){
   let filtered=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; if(search&&!r.join(' ').toLowerCase().includes(search)) return false; return true; });
   if(!filtered.length){ document.getElementById('mainContent').innerHTML='<div class="state-box"><div class="state-msg">No results match.</div></div>'; return; }
   const groups=[]; let curKey=null,curGroup=null;
-  filtered.forEach(r=>{ const key=(r[COL.role]||'')+'||'+(r[COL.jobId]||'')+'||'+(r[COL.stakeholder]||''); if(key!==curKey){ curGroup={key,lr:r,lrich:richRows[rawRows.indexOf(r)],cands:[]}; groups.push(curGroup); curKey=key; } curGroup.cands.push({r,rich:richRows[rawRows.indexOf(r)]}); });
+  filtered.forEach(r=>{ const key=(r[COL.role]||'')+'||'+(r[COL.jobId]||'')+'||'+(r[COL.stakeholder]||''); if(key!==curKey){ curGroup={key,lr:r,lrich:null,cands:[]}; groups.push(curGroup); curKey=key; } curGroup.cands.push(r); });
   let html='<div class="table-wrap"><table><colgroup><col class="c-pr"><col class="c-stk"><col class="c-proj"><col class="c-role"><col class="c-jobid"><col class="c-owner"><col class="c-pri"><col class="c-status"><col class="c-talent"><col class="c-notes"><col class="c-rtt"><col class="c-rtc"><col class="c-loc"></colgroup>';
   html+='<thead><tr><th>PR</th><th>Requestor/POC</th><th>Project</th><th>Role / Job</th><th>Job ID</th><th>Owner</th><th>Priority</th><th>Status</th><th>Talent</th><th>Comments</th><th>RTT</th><th>RTC</th><th>Location</th></tr></thead><tbody>';
+
   groups.forEach(g=>{
-    const span=g.cands.length; const lr=g.lr; const lrich=g.lrich; const gp=isPlaced(lr);
-    g.cands.forEach((c,ci)=>{
-      const r=c.r; const rich=c.rich; const isFirst=ci===0; const rp=isPlaced(r);
-      const tr2=rich?rich[COL.talent]:null; const tn=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—');
-      const rr=lrich?lrich[COL.role]:null; const roleText=(rr&&rr.text)?rr.text:(lr[COL.role]||''); const roleUrl=(rr&&rr.url)?rr.url:'';
-      const status=r[COL.status]||''; const notes=r[COL.notes]||''; const priority=lr[COL.priority]||''; const pClass=priorityClass(priority);
+    const span=g.cands.length; const lr=g.lr; const gp=isPlaced(lr);
+    g.cands.forEach((r,ci)=>{
+      const isFirst=ci===0; const rp=isPlaced(r);
+      const tn=r[COL.talent]||'—';
+      const talentUrl=r[COL.talentUrl]||'';
+      const roleText=lr[COL.role]||'';
+      const roleUrl=lr[COL.roleUrl]||'';
+      const status=r[COL.status]||''; const notes=r[COL.notes]||'';
+      const priority=lr[COL.priority]||''; const pClass=priorityClass(priority);
       const idx=rawRows.indexOf(r); const lidx=rawRows.indexOf(lr);
       html+='<tr'+(isFirst?' class="group-start'+(rp?' row-placed':'')+'\"':(rp?' class="row-placed"':''))+'>';
       if(isFirst){
@@ -258,13 +266,13 @@ function render(){
 
 function openFieldModal(td){
   const idx=parseInt(td.getAttribute('data-idx')); const field=td.getAttribute('data-field');
-  const r=rawRows[idx]; const rich=richRows[idx];
+  const r=rawRows[idx];
   if(field==='stakeholder'){
     document.getElementById('modalTitle').textContent='Requestor / POC';
     document.getElementById('modalBody').textContent=r[COL.stakeholder]||'—';
     document.getElementById('modalMeta').innerHTML=r[COL.role]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.role])+'</span>':'';
   } else if(field==='role'){
-    const rr=rich?rich[COL.role]:null; const roleText=(rr&&rr.text)?rr.text:(r[COL.role]||'—'); const roleUrl=(rr&&rr.url)?rr.url:'';
+    const roleText=r[COL.role]||'—'; const roleUrl=r[COL.roleUrl]||'';
     document.getElementById('modalTitle').textContent='Role / Job';
     document.getElementById('modalBody').innerHTML='<strong style="font-size:14px;color:var(--text);">'+esc(roleText)+'</strong>'+(roleUrl?'<br><br><a href="'+esc(roleUrl)+'" target="_blank" style="color:#1B4FA8;font-weight:500;">View job description ↗</a>':'');
     document.getElementById('modalMeta').innerHTML=(r[COL.jobId]?'<span style="font-size:12px;font-family:monospace;color:var(--text-muted);">'+esc(r[COL.jobId])+'</span>':'')+(r[COL.owner]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.owner])+'</span>':'')+(r[COL.priority]?'<span class="pri-badge '+priorityClass(r[COL.priority])+'">'+esc(r[COL.priority])+'</span>':'');
@@ -273,18 +281,20 @@ function openFieldModal(td){
 }
 
 function openTalentModal(td){
-  const idx=parseInt(td.getAttribute('data-idx')); const r=rawRows[idx]; const rich=richRows[idx];
-  const tr2=rich?rich[COL.talent]:null; const name=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—'); const url=(tr2&&tr2.url)?tr2.url:'';
+  const idx=parseInt(td.getAttribute('data-idx')); const r=rawRows[idx];
+  const name=r[COL.talent]||'—'; const url=r[COL.talentUrl]||'';
   document.getElementById('modalTitle').textContent=name;
-  document.getElementById('modalBody').innerHTML=url?'<a href="'+esc(url)+'" target="_blank" style="color:#1B4FA8;font-weight:500;">View talent profile ↗</a>':'<span style="color:var(--text-hint)">No profile link yet.</span>';
+  document.getElementById('modalBody').innerHTML=url
+    ?'<a href="'+esc(url)+'" target="_blank" style="color:#1B4FA8;font-weight:500;font-size:14px;">View talent profile ↗</a>'
+    :'<span style="color:var(--text-hint)">No profile link available.</span>';
   const sc=statusClass(r[COL.status]||'');
   document.getElementById('modalMeta').innerHTML=(r[COL.status]?'<span class="status-badge '+sc+'">'+esc(r[COL.status])+'</span>':'')+(r[COL.role]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.role])+'</span>':'')+(r[COL.owner]?'<span style="font-size:12px;color:var(--text-muted);">'+esc(r[COL.owner])+'</span>':'');
   document.getElementById('modalOverlay').classList.add('open');
 }
 
 function openNotesModal(td){
-  const idx=parseInt(td.getAttribute('data-idx')); const r=rawRows[idx]; const rich=richRows[idx];
-  const tr2=rich?rich[COL.talent]:null; const name=(tr2&&tr2.text)?tr2.text:(r[COL.talent]||'—');
+  const idx=parseInt(td.getAttribute('data-idx')); const r=rawRows[idx];
+  const name=r[COL.talent]||'—';
   document.getElementById('modalTitle').textContent=name;
   document.getElementById('modalBody').textContent=r[COL.notes]||'';
   const sc=statusClass(r[COL.status]||'');
@@ -297,7 +307,7 @@ function exportCSV(){
   const search=norm(document.getElementById('searchBox').value);
   const rows=getViewRows().filter(r=>{ if(!matchStatus(r)) return false; if(!matchPriority(r)) return false; if(ownerFilter&&r[COL.owner]!==ownerFilter) return false; if(roleF&&r[COL.role]!==roleF) return false; if(search&&!r.join(' ').toLowerCase().includes(search)) return false; return true; });
   const headers=['PR','Requestor/POC','Project','Role/Job','Job ID','Owner','Priority','Status','Talent','Comments','RTT','RTC','Location'];
-  const csv=[headers.join(','),...rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n');
+  const csv=[headers.join(','),...rows.map(r=>r.slice(0,13).map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n');
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='pepsico-hiring-tracker.csv'; a.click();
 }
 
